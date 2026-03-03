@@ -10,14 +10,14 @@ terraform {
 }
 
 provider "yandex" {
-  zone = "ru-central1-d"
+  zone = var.zone
 }
 
 # 
 resource "yandex_compute_disk" "boot-disk-1" {
   name     = "boot-disk-1"
   type     = "network-hdd"
-  zone     = "ru-central1-d"
+  zone     = var.zone
   size     = "20"
   image_id = var.image_id
 }
@@ -48,8 +48,8 @@ resource "yandex_compute_instance_group" "backend" {
     platform_id = "standard-v2"
 
     resources {
-      cores  = 4
-      memory = 8
+      cores  = var.backend_cores
+      memory = var.backend_memory
     }
 
     boot_disk {
@@ -66,9 +66,9 @@ resource "yandex_compute_instance_group" "backend" {
     auto_scale {
       initial_size           = 2
       measurement_duration   = 100000000
-      min_zone_size          = 2
-      max_size               = 6
-      cpu_utilization_target = 70
+      min_zone_size          = var.backend_min_size
+      max_size               = var.backend_max_size
+      cpu_utilization_target = var.backend_cpu_target
     }
   }
 
@@ -180,9 +180,9 @@ resource "yandex_mdb_postgresql_cluster" "pg" {
 
   config {
     resources {
-      resource_preset_id = "s2.micro"
+      resource_preset_id = var.pg_resource_preset
       disk_type_id       = "network-ssd"
-      disk_size          = 16
+      disk_size          = var.pg_disk_size
     }
     version = 15
   }
@@ -203,8 +203,8 @@ resource "yandex_mdb_kafka_cluster" "finag-kafka" {
   network_id  = yandex_vpc_network.main.id
   config {
     version          = "2.8"
-    brokers_count    = 1
-    zones            = ["ru-central1-d"]
+    brokers_count    = var.kafka_broker_count
+    zones            = [var.zone]
     assign_public_ip = false
     schema_registry  = false
     rest_api {
@@ -217,7 +217,7 @@ resource "yandex_mdb_kafka_cluster" "finag-kafka" {
       resources {
         resource_preset_id = "s2.micro"
         disk_type_id       = "network-ssd"
-        disk_size          = 32
+        disk_size          = var.kafka_disk_size
       }
       kafka_config {
         compression_type                = "COMPRESSION_TYPE_ZSTD"
@@ -268,7 +268,7 @@ resource "yandex_mdb_kafka_cluster" "finag-kafka" {
 resource "yandex_vpc_network" "foo" {}
 
 resource "yandex_vpc_subnet" "foo" {
-  zone           = "ru-central1-a"
+  zone           = var.zone
   network_id     = yandex_vpc_network.foo.id
   v4_cidr_blocks = ["10.5.0.0/24"]
 }
