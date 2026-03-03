@@ -65,7 +65,7 @@ resource "yandex_compute_instance_group" "backend" {
   scale_policy {
     auto_scale {
       initial_size           = 2
-      measurement_duration   = 1
+      measurement_duration   = 100000000
       min_zone_size          = 2
       max_size               = 6
       cpu_utilization_target = 70
@@ -126,12 +126,12 @@ resource "yandex_alb_target_group" "group" {
 
   target {
     subnet_id  = yandex_vpc_subnet.main.id
-    ip_address = "10.5.0.2"
+    ip_address = "10.10.0.1"
   }
 
   target {
     subnet_id  = yandex_vpc_subnet.main.id
-    ip_address = "10.5.0.1"
+    ip_address = "10.10.0.2"
   }
 }
 
