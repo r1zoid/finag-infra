@@ -163,7 +163,7 @@ info:
   title: finance-api
   version: 1.0.0
 paths:
-  /{proxy+}:
+  /proxy:
     x-yc-apigateway-any-method:
       x-yc-apigateway-integration:
         type: http
@@ -197,12 +197,12 @@ resource "yandex_mdb_postgresql_cluster" "pg" {
 
 # Kafka cluster 
 
-resource "yandex_mdb_kafka_cluster" "my_cluster" {
+resource "yandex_mdb_kafka_cluster" "finag-kafka" {
   name        = "finag-kafka"
   environment = "PRODUCTION"
   network_id  = yandex_vpc_network.main.id
   config {
-    version          = "3.5"
+    version          = "2.8"
     brokers_count    = 1
     zones            = ["ru-central1-d"]
     assign_public_ip = false
