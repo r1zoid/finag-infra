@@ -6,12 +6,15 @@
 
 # Python
 *.pyc
-
+key.json
 # Emacs save files
 *~
 \#*\#
 .\#*
-
+*.tfstate
+*.tfstate.*
+.terraform.lock
+.terraform/
 # Vim-related files
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
