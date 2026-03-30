@@ -1,6 +1,8 @@
-environment        = "dev"
+environment = "dev"
 # service_account_id = "replace-with-service-account-id"
-image_id           = "fd86k5lln2u2bvfuk00u"
+image_id = "fd86k5lln2u2bvfuk00u"
+
+backend_enable_coi_runtime = false
 
 backend_min_size   = 1
 backend_max_size   = 2
