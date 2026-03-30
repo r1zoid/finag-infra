@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web:
+    image: cr.yandex/${cr_registry}/${cr_repository}:${image_tag}
+    restart: always
+    ports:
+      - "${backend_port}:${backend_port}"
+    environment:
+      DATABASE_URL: "${database_url}"
+      SECRET_KEY: "${secret_key}"
+      ACCESS_TOKEN_EXPIRE_MINUTES: "${access_token_expire_minutes}"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port ${backend_port}"

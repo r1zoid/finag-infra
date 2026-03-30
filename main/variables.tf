@@ -122,6 +122,79 @@ variable "backend_port" {
   default     = 8080
 }
 
+variable "backend_enable_coi_runtime" {
+  description = "When true, backend instances run container workload from metadata docker-compose declaration."
+  type        = bool
+  default     = false
+}
+
+variable "backend_image_registry" {
+  description = "Yandex Container Registry ID for backend image (for example: crpXXXXXXXXXXXX)."
+  type        = string
+  default     = ""
+}
+
+variable "backend_image_repository" {
+  description = "Container repository name for backend image."
+  type        = string
+  default     = "finag"
+}
+
+variable "backend_image_tag" {
+  description = "Container image tag for backend rollout."
+  type        = string
+  default     = "latest"
+}
+
+variable "ssh_user" {
+  description = "Linux username for SSH metadata key injection."
+  type        = string
+  default     = "user"
+}
+
+variable "ssh_public_key" {
+  description = "Public SSH key line (ssh-ed25519/ssh-rsa ...). Provide through TF_VAR_ssh_public_key."
+  type        = string
+  default     = ""
+}
+
+variable "pg_app_database" {
+  description = "Application database name in Managed PostgreSQL."
+  type        = string
+  default     = "aggr"
+}
+
+variable "pg_app_username" {
+  description = "Application database user in Managed PostgreSQL."
+  type        = string
+  default     = "finag_app"
+}
+
+variable "pg_app_password" {
+  description = "Application database password in Managed PostgreSQL. Provide via TF_VAR_pg_app_password."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "app_secret_key" {
+  description = "Runtime SECRET_KEY passed to backend container."
+  type        = string
+  default     = "super-secret-key-for-coursework"
+  sensitive   = true
+}
+
+variable "app_access_token_expire_minutes" {
+  description = "Runtime ACCESS_TOKEN_EXPIRE_MINUTES passed to backend container."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.app_access_token_expire_minutes >= 1
+    error_message = "app_access_token_expire_minutes must be >= 1."
+  }
+}
+
 variable "pg_disk_size" {
   description = "PostgreSQL disk size in GB."
   type        = number

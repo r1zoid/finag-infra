@@ -26,6 +26,18 @@ locals {
   kafka_zones              = var.environment == "prod" ? local.all_zones : [var.zone]
   deployment_environment   = var.environment == "prod" ? "PRODUCTION" : "PRESTABLE"
   kafka_replication_factor = min(3, var.kafka_broker_count)
+
+  pg_rw_fqdn           = "c-${yandex_mdb_postgresql_cluster.pg.id}.rw.mdb.yandexcloud.net"
+  backend_database_url = "postgresql+asyncpg://${var.pg_app_username}:${urlencode(var.pg_app_password)}@${local.pg_rw_fqdn}:6432/${var.pg_app_database}?ssl=require"
+  backend_compose = templatefile("${path.module}/backend-docker-compose.tftpl", {
+    cr_registry                 = var.backend_image_registry
+    cr_repository               = var.backend_image_repository
+    image_tag                   = var.backend_image_tag
+    backend_port                = var.backend_port
+    database_url                = local.backend_database_url
+    secret_key                  = var.app_secret_key
+    access_token_expire_minutes = var.app_access_token_expire_minutes
+  })
 }
 
 check "backend_scale_bounds" {
@@ -46,6 +58,27 @@ check "prod_multi_zone_subnets" {
   assert {
     condition     = var.environment != "prod" || length(local.subnet_zone_cidrs) >= 3
     error_message = "Prod requires at least three configured subnets/zones for HA stateful services."
+  }
+}
+
+check "stage_prod_require_mig_runtime" {
+  assert {
+    condition     = var.environment == "dev" || var.backend_enable_coi_runtime
+    error_message = "For stage/prod environments set backend_enable_coi_runtime=true to run backend on MIG instances."
+  }
+}
+
+check "runtime_image_registry_required" {
+  assert {
+    condition     = !var.backend_enable_coi_runtime || length(trimspace(var.backend_image_registry)) > 0
+    error_message = "backend_image_registry is required when backend_enable_coi_runtime=true."
+  }
+}
+
+check "runtime_pg_password_required" {
+  assert {
+    condition     = !var.backend_enable_coi_runtime || length(trimspace(var.pg_app_password)) > 0
+    error_message = "pg_app_password is required when backend_enable_coi_runtime=true."
   }
 }
 
@@ -93,6 +126,15 @@ resource "yandex_compute_instance_group" "backend" {
       subnet_ids = [yandex_vpc_subnet.main[local.backend_zone].id]
       nat        = false
     }
+
+    metadata = merge(
+      var.ssh_public_key == "" ? {} : {
+        "ssh-keys" = "${var.ssh_user}:${var.ssh_public_key}"
+      },
+      var.backend_enable_coi_runtime ? {
+        "docker-compose" = local.backend_compose
+      } : {},
+    )
   }
 
   scale_policy {
@@ -222,6 +264,18 @@ resource "yandex_mdb_postgresql_cluster" "pg" {
       subnet_id = yandex_vpc_subnet.main[host.value].id
     }
   }
+}
+
+resource "yandex_mdb_postgresql_user" "app" {
+  cluster_id = yandex_mdb_postgresql_cluster.pg.id
+  name       = var.pg_app_username
+  password   = var.pg_app_password
+}
+
+resource "yandex_mdb_postgresql_database" "app" {
+  cluster_id = yandex_mdb_postgresql_cluster.pg.id
+  name       = var.pg_app_database
+  owner      = yandex_mdb_postgresql_user.app.name
 }
 
 resource "yandex_mdb_kafka_cluster" "finag_kafka" {
